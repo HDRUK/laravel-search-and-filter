@@ -1,0 +1,17 @@
+{
+    "name": "hdruk/laravel-search-and-filter",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Hdruk\\LaravelSearchAndFilter\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Loki Sinclair",
+            "email": "loki.sinclair@hdruk.ac.uk"
+        }
+    ],
+    "require": {}
+}
