@@ -4,7 +4,7 @@ namespace Hdruk\LaravelSearchAndFilter\Traits;
 
 trait Search
 {
-    public function scopeSearch($query, ?array $input = null): mixed
+    public function scopeSearchViaRequest($query, ?array $input = null): mixed
     {
         $input = $input ?? request()->all();
 
@@ -59,13 +59,14 @@ trait Search
         });
     }
 
-    public function scopeSort($query): mixed
+    public function scopeApplySorting($query): mixed
     {
         $input = \request()->all();
 
         // If no sort option passed, then always default to the first
         // element of our sortableColumns array on the model
         $sort = $input['sort'] ?? static::$sortableColumns[0];
+        if (!$sort) return $query;
 
         $tmp = explode(':', $sort);
         $field = strtolower($tmp[0]);
@@ -74,7 +75,7 @@ trait Search
             throw new \Exception('field ' . $field . ' is not a sortable column');
         }
 
-        $direction = strtolower($tmp[1]);
+        $direction = (isset($tmp[1]) ? strtolower($tmp[1]) : 'asc');
         if (!in_array($direction, ['asc', 'desc'])) {
             throw new \Exception('invalid sort direction ' . $direction);
         }
