@@ -7,10 +7,12 @@ trait Search
     public function scopeSearchViaRequest($query, ?array $input = null): mixed
     {
         $input = $input ?? request()->all();
+        $searchable = static::$searchableColumns ?? [];
 
         $orGroups = [];
         $andGroups = [];
 
+        // Parse input fields and logic suffixes (__or / __add)
         foreach ($input as $fieldWithOperator => $searchValue) {
             if (str_ends_with($fieldWithOperator, '__or')) {
                 $field = str_replace('__or', '', $fieldWithOperator);
@@ -23,7 +25,8 @@ trait Search
                 $logic = 'or';
             }
 
-            if (!in_array(strtolower($field), static::$searchableColumns)) {
+            $columns = static::searchableColumnsFor($field);
+            if (empty($columns)) {
                 continue;
             }
 
@@ -34,24 +37,35 @@ trait Search
             }
         }
 
+        // Build query conditions
         return $query->where(function ($outerQuery) use ($orGroups, $andGroups) {
+            // AND logic groups
             foreach ($andGroups as $field => $terms) {
-                $outerQuery->where(function ($q) use ($field, $terms) {
+                $columns = static::searchableColumnsFor($field);
+                $terms = (array)$terms;
+
+                $outerQuery->where(function ($q) use ($columns, $terms) {
                     foreach ($terms as $term) {
-                        $q->where($field, 'LIKE', '%' . $term . '%');
+                        $q->where(function ($subQ) use ($columns, $term) {
+                            foreach ($columns as $col) {
+                                $subQ->orWhere($col, 'LIKE', '%' . $term . '%');
+                            }
+                        });
                     }
                 });
             }
 
+            // OR logic groups
             if (!empty($orGroups)) {
                 $outerQuery->where(function ($q) use ($orGroups) {
                     foreach ($orGroups as $field => $terms) {
-                        if (is_array($terms)) {
-                            foreach ($terms as $term) {
-                                $q->orWhere($field, 'LIKE', '%' . $term . '%');
-                            }
-                        } else {
-                            $q->orWhere($field, 'LIKE', '%' . $terms . '%');
+                        $columns = static::searchableColumnsFor($field);
+                        foreach ((array)$terms as $term) {
+                            $q->orWhere(function ($subQ) use ($columns, $term) {
+                                foreach ($columns as $col) {
+                                    $subQ->orWhere($col, 'LIKE', '%' . $term . '%');
+                                }
+                            });
                         }
                     }
                 });
@@ -81,5 +95,23 @@ trait Search
         }
 
         return $query->orderBy($field, $direction);
+    }
+
+    protected static function searchableColumnsFor(string $field): array
+    {
+        $searchable = static::$searchableColumns ?? [];
+        $field = strtolower($field);
+
+        if (array_key_exists($field, $searchable)) {
+            // Group mapping example: 'name' => ['first_name', 'last_name']
+            return (array)$searchable[$field];
+        }
+
+        if (in_array($field, $searchable, true)) {
+            // Plain searchable column
+            return [$field];
+        }
+
+        return [];
     }
 }
