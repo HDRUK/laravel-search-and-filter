@@ -79,9 +79,9 @@ trait Search
 
         // If no sort option passed, then always default to the first
         // element of our sortableColumns array on the model
-        $sort = $input['sort'] ?? static::$sortableColumns[0];
+        $sort = $input['sort'] ?? null;
         if (!$sort) {
-            $query->orderBy($defaultField, $defaultDirection);
+            return $query->orderBy($defaultField, $defaultDirection);
         }
 
         $tmp = explode(':', $sort);
