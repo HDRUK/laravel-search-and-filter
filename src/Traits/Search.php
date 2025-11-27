@@ -80,7 +80,9 @@ trait Search
         // If no sort option passed, then always default to the first
         // element of our sortableColumns array on the model
         $sort = $input['sort'] ?? static::$sortableColumns[0];
-        if (!$sort) return $query;
+        if (!$sort) {
+            $query->orderBy('created_at', 'desc');
+        }
 
         $tmp = explode(':', $sort);
         $field = strtolower($tmp[0]);
