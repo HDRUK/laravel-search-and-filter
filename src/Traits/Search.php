@@ -73,14 +73,17 @@ trait Search
         });
     }
 
-    public function scopeApplySorting($query, string $defaultField = 'created_at', string $defaultDirection = 'desc'): mixed
-    {
+   public function scopeApplySorting($query, ?string $defaultField = null, string $defaultDirection = 'desc'): mixed
+ {
         $input = \request()->all();
 
         // If no sort option passed, then always default to the first
         // element of our sortableColumns array on the model
         $sort = $input['sort'] ?? null;
         if (!$sort) {
+            if ($defaultField === null) {
+                return $query;
+            }
             return $query->orderBy($defaultField, $defaultDirection);
         }
 
